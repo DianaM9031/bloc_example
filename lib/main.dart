@@ -1,9 +1,8 @@
+import 'package:bloc_example/bloc/weather_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'counter_bloc.dart';
-import 'counter_event.dart';
-import 'counter_state.dart';
+import 'model/weather.dart';
 
 void main() {
   runApp(MyApp());
@@ -18,56 +17,129 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: BlocProvider(
-        create: (context) => CounterBloc(CounterState(counter: 0)),
-        child: MyHomePage(title: 'Flutter Demo Home Page'),
-      ),
+      home: WeatherPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
+class WeatherPage extends StatefulWidget {
+  WeatherPage({Key key}) : super(key: key);
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _WeatherPageState createState() => _WeatherPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  CounterBloc _counterBloc;
+class _WeatherPageState extends State<WeatherPage> {
+  final weatherBloc = WeatherBloc(WeatherInitial());
 
+  @override
   Widget build(BuildContext context) {
-    _counterBloc = BlocProvider.of<CounterBloc>(context);
     return Scaffold(
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            child: Icon(Icons.add),
-            onPressed: () => _counterBloc.add(IncrementEvent()),
-          ),
-          SizedBox(width: 10),
-          FloatingActionButton(
-            child: Icon(Icons.remove),
-            onPressed: () => _counterBloc.add(DecrementEvent()),
-          ),
-        ],
-      ),
       appBar: AppBar(
-        title: Text('Bloc Counter Example'),
+        title: Text("Fake Weather App"),
       ),
-      body: Center(
-        child: BlocBuilder<CounterBloc, CounterState>(
-          builder: (context, state) {
-            return Text(
-              '${state.counter}',
-              style: TextStyle(fontSize: 50.0),
-            );
-          },
+      body: BlocProvider(
+        create: (context) => weatherBloc,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          alignment: Alignment.center,
+          child: BlocListener<WeatherBloc, WeatherState>(
+            listener: (context, state) {
+              if(state is WeatherLoaded) {
+                print('Loaded: ${state.weather.cityName}');
+              }
+            },
+            child: BlocBuilder<WeatherBloc, WeatherState>(
+                builder: (context, state) {
+                  if(state is WeatherInitial) {
+                    return buildInitialInput();
+                  } else if(state is WeatherLoading) {
+                    return buildLoading();
+                  } else if(state is WeatherLoaded) {
+                    return buildColumnWithData(state.weather);
+                  } else {
+                    return Container();
+                  }
+                },
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  Column buildColumnWithData(Weather weather) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: <Widget>[
+        Text(
+          '${weather.cityName}',
+          style: TextStyle(
+            fontSize: 40,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          "${weather.temperature.toStringAsFixed(1)} °C",
+          style: TextStyle(fontSize: 80),
+        ),
+        CityInputField(),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    // weatherBloc.dispose();
+  }
+
+  Widget buildInitialInput() {
+    return Center(
+      child: CityInputField(),
+    );
+  }
+
+  Widget buildLoading() {
+    return Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+}
+
+class CityInputField extends StatefulWidget {
+  const CityInputField({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  _CityInputFieldState createState() => _CityInputFieldState();
+}
+
+class _CityInputFieldState extends State<CityInputField> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 50),
+      child: TextField(
+        onSubmitted: submitCityName,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: "Enter a city",
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: Icon(Icons.search),
+        ),
+      ),
+    );
+  }
+
+  void submitCityName(String cityName) {
+    final weatherBloc = BlocProvider.of<WeatherBloc>(context);
+    weatherBloc.add(GetWeather(cityName));
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
