@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'counter_bloc.dart';
 import 'counter_event.dart';
+import 'counter_state.dart';
 
 void main() {
   runApp(MyApp());
@@ -31,7 +33,30 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _bloc = CounterBloc();
+  final _counterBloc = CounterBloc();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      bloc: _counterBloc,
+      child: CounterWidget(widget: widget),
+    );
+  }
+
+  @override
+  void dispose() {
+    _counterBloc.dispose();
+    super.dispose();
+  }
+}
+
+class CounterWidget extends StatelessWidget {
+  const CounterWidget({
+    Key key,
+    @required this.widget,
+  }) : super(key: key);
+
+  final MyHomePage widget;
 
   @override
   Widget build(BuildContext context) {
@@ -39,48 +64,42 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: StreamBuilder(
-          stream: _bloc.counter,
-          initialData: 0,
-          builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  'You have pushed the button this many times:',
-                ),
-                Text(
-                  '${snapshot.data}',
-                  style: Theme.of(context).textTheme.headline4,
-                ),
-              ],
+      body: BlocBuilder(
+          // bloc: BlocProvider.of<CounterBloc>(context),
+          builder: (context, CounterState state) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'You have pushed the button this many times:',
+                  ),
+                  Text(
+                    '${state.counter}',
+                    style: Theme.of(context).textTheme.display1,
+                  ),
+                ],
+              ),
             );
-          },
-        ),
-      ),
+          }),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
           FloatingActionButton(
-            onPressed: () => _bloc.counterEventSink.add(IncrementEvent()),
+            onPressed: () =>
+                BlocProvider.of<CounterBloc>(context).onIncrement(),
             tooltip: 'Increment',
             child: Icon(Icons.add),
           ),
           SizedBox(width: 10),
           FloatingActionButton(
-            onPressed: () => _bloc.counterEventSink.add(DecrementEvent()),
+            onPressed: () =>
+                BlocProvider.of<CounterBloc>(context).onDecrement(),
             tooltip: 'Decrement',
             child: Icon(Icons.remove),
           ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    _bloc.dispose();
   }
 }
