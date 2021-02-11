@@ -18,7 +18,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: BlocProvider(
+        create: (context) => CounterBloc(CounterState(counter: 0)),
+        child: MyHomePage(title: 'Flutter Demo Home Page'),
+      ),
     );
   }
 }
@@ -33,72 +36,37 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final _counterBloc = CounterBloc();
+  CounterBloc _counterBloc;
 
-  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      bloc: _counterBloc,
-      child: CounterWidget(widget: widget),
-    );
-  }
-
-  @override
-  void dispose() {
-    _counterBloc.dispose();
-    super.dispose();
-  }
-}
-
-class CounterWidget extends StatelessWidget {
-  const CounterWidget({
-    Key key,
-    @required this.widget,
-  }) : super(key: key);
-
-  final MyHomePage widget;
-
-  @override
-  Widget build(BuildContext context) {
+    _counterBloc = BlocProvider.of<CounterBloc>(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: BlocBuilder(
-          // bloc: BlocProvider.of<CounterBloc>(context),
-          builder: (context, CounterState state) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    'You have pushed the button this many times:',
-                  ),
-                  Text(
-                    '${state.counter}',
-                    style: Theme.of(context).textTheme.display1,
-                  ),
-                ],
-              ),
-            );
-          }),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
+        children: [
           FloatingActionButton(
-            onPressed: () =>
-                BlocProvider.of<CounterBloc>(context).onIncrement(),
-            tooltip: 'Increment',
             child: Icon(Icons.add),
+            onPressed: () => _counterBloc.add(IncrementEvent()),
           ),
           SizedBox(width: 10),
           FloatingActionButton(
-            onPressed: () =>
-                BlocProvider.of<CounterBloc>(context).onDecrement(),
-            tooltip: 'Decrement',
             child: Icon(Icons.remove),
+            onPressed: () => _counterBloc.add(DecrementEvent()),
           ),
         ],
+      ),
+      appBar: AppBar(
+        title: Text('Bloc Counter Example'),
+      ),
+      body: Center(
+        child: BlocBuilder<CounterBloc, CounterState>(
+          builder: (context, state) {
+            return Text(
+              '${state.counter}',
+              style: TextStyle(fontSize: 50.0),
+            );
+          },
+        ),
       ),
     );
   }
